@@ -1,0 +1,100 @@
+1 - cat /etc/resolv.conf 
+To compare DNS vs 8.8.8.8
+nslookup internal.example.com
+To test through  internal DNS
+nslookup internal.example.com 8.8.8.8 
+To test through 8.8.8.8 "Google" DNS
+If they both fail -> DNS record is missing
+If internal fails and Google can't find it -> Internal DNS may be broken
+
+2- 
+1. ping -c 4 10.0.0.25
+2. check  port 80 or 443 
+telnet 10.0.0.25 80
+telnet 10.0.0.25 443
+
+3- issues might include:
+1. Internal DNS misconfigured
+2. Problem with /etc/resolv.conf settings
+3. DNS caching
+4. Web service not working
+5. Firewall blocking access
+6. Wrong IP or IP changed
+4- Fixes would include:
+1. Fix internal DNS configs
+    Check DNS server status:
+
+    sudo systemctl status named
+    sudo systemctl status bind9
+
+    Restart DNS service:
+    sudo systemctl restart named
+    sudo systemctl restart bind9
+
+    Test DNS server directly:
+
+        dig @10.0.0.1 internal.example.com
+
+2. Edit /etc/resolv.conf manually
+
+Check current DNS settings:
+    cat /etc/resolv.conf
+
+to edit manually:
+    sudo nano /etc/resolv.conf
+
+make nameserver:
+        nameserver 10.0.0.1
+
+3. Flush DNS cache
+sudo systemd-resolve --flush-caches
+
+
+4. Restart or fix the web service
+
+check if web service is running:
+
+    sudo systemctl status nginx
+    sudo systemctl status apache2
+
+restart the service:
+
+    sudo systemctl restart nginx
+    sudo systemctl restart apache2
+
+5. Disable firewall blocking ports
+
+Check firewall status:
+    sudo ufw status
+
+Allow web traffic:
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+    sudo ufw reload
+
+6. Update DNS records and reload
+
+same as number 1 but also edit DNS zone files if IP changed:
+
+    sudo nano /etc/bind/db.example.com
+
+Reload DNS:
+
+sudo systemctl reload bind9
+sudo systemctl reload named
+
+Bonus : 
+1- 
+    1. to map internal.example.com to 10.0.0.25 
+    sudo sh -c 'echo "10.0.0.25 internal.example.com" >> /etc/hosts' 
+    2. ping internal.example.com
+    curl http://internal.example.com
+    to test without DNS lookup
+
+2-  1. systemctl status systemd-resolved  
+    to check the system
+    2. sudo nano /etc/systemd/resolved.conf 
+        then set : 
+        DNS=10.0.0.1
+        FallbackDNS=8.8.8.8
+    3. sudo systemctl restart systemd-resolved

@@ -1,0 +1,68 @@
+1. Breakdown of how the script handles arguments and options:
+
+    Options parsing (-n, -v, --help):
+
+        If the first argument is --help, it immediately shows usage instructions and exits.
+
+        Otherwise, it uses getopts to parse -n and -v:
+
+            -n: sets nflag=1, meaning it will prefix each matching line with the line number.
+
+            -v: sets vflag=1, meaning it will invert matching (show lines that don't match the pattern).
+
+    Positional arguments parsing (pattern and files):
+
+        After options, it shifts (shift $((OPTIND - 1))) to move past the parsed options.
+
+        The first remaining argument is treated as the pattern.
+
+            If missing or if a file is mistakenly passed instead of a pattern, the script errors out.
+
+        Remaining arguments are treated as filenames.
+
+            If no filenames are provided, it reads from standard input (- → /dev/stdin).
+
+    Defaults:
+
+        If nflag or vflag are unset after parsing, they're explicitly set to 0.
+
+    Main Loop:
+
+        For each file:
+
+            Checks if it’s readable; if not, prints an error.
+
+            Reads each line:
+
+                Increments lineno.
+
+                If -v is set: print lines that don't match the pattern.
+
+                Else: print lines that do match.
+
+                If -n is set: line numbers are printed with the matching lines.
+
+2. If you were to support regex matching, or add -i, -c, -l options:
+
+I would make these changes:
+
+    Expand the getopts string to include i, c, l.
+
+    Introduce new flags like iflag=0, cflag=0, lflag=0.
+
+    Modify the grep commands:
+
+        Add -i if iflag=1.
+
+        Use different logic if cflag=1 by incrementing a counter instead of printing lines.
+
+        Use a file-level check for lflag=1 (print file name once if any match found).
+
+    Regex would be naturally supported because grep already does regex matching by default. No major change needed unless you want to switch to something like awk or sed for fancier regex.
+
+3. What part of the script was hardest to implement and why?
+
+The trickiest part was correctly handling the arguments and distinguishing between the pattern and filenames.
+Because getopts only handles options (-n, -v, etc.) — the pattern (which is required!) is not an option, so you have to manually check after shift that a valid pattern was provided.
+Catching the edge case where the user accidentally passes a file instead of a pattern (and giving a meaningful error) required extra logic.
+This part is tedious because bash doesn't make argument parsing as clean as languages like Python, and you have to be careful not to break if users input unexpected values.
